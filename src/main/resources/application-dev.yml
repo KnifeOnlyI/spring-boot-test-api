@@ -6,3 +6,6 @@ spring:
 
   liquibase:
     change-log: classpath:/db/changelog/master.xml
+
+jwt:
+  secret: the-secret-jwt

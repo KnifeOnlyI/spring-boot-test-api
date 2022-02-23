@@ -7,7 +7,7 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class HelloWorldDTO {
-    private Long id;
-    private String message;
+public class UserLogin {
+    private String login;
+    private String password;
 }
