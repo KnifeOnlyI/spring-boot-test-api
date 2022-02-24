@@ -3,26 +3,28 @@
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
-    <changeSet id="0.0.1-token" author="knife">
-        <createTable tableName="token">
+    <changeSet id="0.0.1-user" author="knife">
+        <createTable tableName="koi_user">
             <column name="id" type="serial">
                 <constraints primaryKey="true" nullable="false" />
             </column>
-            <column name="token" type="varchar">
+            <column name="email" type="varchar(255)">
                 <constraints nullable="false" unique="true" />
+            </column>
+            <column name="login" type="varchar(255)">
+                <constraints nullable="false" unique="true" />
+            </column>
+            <column name="password" type="varchar(255)">
+                <constraints nullable="false" />
             </column>
             <column name="created_at" type="datetime">
                 <constraints nullable="false" />
             </column>
-            <column name="deleted" type="boolean">
+            <column name="activated" type="boolean">
                 <constraints nullable="false" />
-            </column>
-            <column name="user_id" type="int">
-                <constraints foreignKeyName="token_user_id_koi_user_id" referencedTableName="koi_user"
-                             referencedColumnNames="id" />
             </column>
         </createTable>
 
-        <createSequence sequenceName="token_id_seq" incrementBy="1" minValue="1" startValue="1" />
+        <createSequence sequenceName="koi_user_id_seq" incrementBy="1" minValue="1" startValue="1" />
     </changeSet>
 </databaseChangeLog>

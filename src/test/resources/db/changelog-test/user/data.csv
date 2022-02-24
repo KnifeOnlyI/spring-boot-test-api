@@ -1,0 +1,3 @@
+id,email,login,password,created_at,activated
+1,activated@user.com,activated,$2y$10$sEMKD7PCy5ytNQeKs51m1OHjqwnW2N/cL5M3mmY4Kv4lgAnVQhyD.,2021-12-31 23:59:59.000000,true
+2,desactivated@user.com,desactivated,$2y$10$sEMKD7PCy5ytNQeKs51m1OHjqwnW2N/cL5M3mmY4Kv4lgAnVQhyD.,2022-01-01 00:00:00.000000,false
