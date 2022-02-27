@@ -5,5 +5,7 @@
 
     <changeSet id="test-user" author="knife">
         <loadData tableName="koi_user" relativeToChangelogFile="true" file="data.csv" />
+
+        <sql>ALTER SEQUENCE koi_user_id_seq RESTART WITH 3</sql>
     </changeSet>
 </databaseChangeLog>

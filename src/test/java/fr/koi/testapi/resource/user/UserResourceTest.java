@@ -1,22 +1,29 @@
 package fr.koi.testapi.resource.user;
 
+import fr.koi.testapi.constants.ErrorKeys;
 import fr.koi.testapi.constants.UserConstants;
 import fr.koi.testapi.domain.TokenEntity;
+import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.dto.JwtTokenDTO;
 import fr.koi.testapi.model.user.JwtTokenModel;
 import fr.koi.testapi.model.user.UserAuthenticator;
 import fr.koi.testapi.repository.TokenRepository;
+import fr.koi.testapi.repository.UserRepository;
 import fr.koi.testapi.services.JwtService;
 import fr.koi.testapi.util.HttpResponseAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.DirtiesContext;
 
+import javax.transaction.Transactional;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test class to test the web resource to manage users
@@ -46,8 +53,70 @@ class UserResourceTest {
     @Autowired
     private TokenRepository tokenRepository;
 
+    /**
+     * The repository to manage users in database
+     */
+    @Autowired
+    private UserRepository userRepository;
+
+    /**
+     * The service to manage JWT tokens
+     */
     @Autowired
     private JwtService jwtService;
+
+    /**
+     * Provide a list of invalid emails
+     *
+     * @return List of invalid emails
+     */
+    private static Stream<String> invalidEmailProvider() {
+        return Stream.of(
+            "hello",                            // email need at least one @
+            "hello@ "                           // domain cant end with space (whitespace)
+        );
+    }
+
+    /**
+     * Provide a list of invalid login
+     *
+     * @return List of invalid login
+     */
+    private static Stream<String> invalidLoginProvider() {
+        return Stream.of(
+            "abc",                      // invalid length 3, length must between 5-20
+            "01234567890123456789a",    // invalid length 21, length must between 5-20
+            "_javaregex_",              // invalid start and last character
+            ".javaregex.",              // invalid start and last character
+            "-javaregex-",              // invalid start and last character
+            "javaregex#$%@123",         // invalid symbols, support dot, hyphen and underscore
+            "java..regex",              // dot cant appear consecutively
+            "java--regex",              // hyphen can't appear consecutively
+            "java__regex",              // underscore can't appear consecutively
+            "java._regex",              // dot and underscore can't appear consecutively
+            "java.-regex"               // dot and hyphen can't appear consecutively
+        );
+    }
+
+    /**
+     * Provide a list of invalid passwords
+     *
+     * @return List of invalid passwords
+     */
+    private static Stream<String> invalidPasswordProvider() {
+        return Stream.of(
+            "12345678",                 // invalid, only digit
+            "abcdefgh",                 // invalid, only lowercase
+            "ABCDEFGH",                 // invalid, only uppercase
+            "abc123$$$",                // invalid, at least one uppercase
+            "ABC123$$$",                // invalid, at least one lowercase
+            "ABC$$$$$$",                // invalid, at least one digit
+            "java REGEX 123",           // invalid, at least one special character
+            "java REGEX 123 %",         // invalid, % is not in the special character group []
+            "________",                 // invalid
+            "--------"                  // invalid
+        );
+    }
 
     /**
      * Test a valid login with email and remember me
@@ -246,7 +315,9 @@ class UserResourceTest {
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.login(
             DEFAULT_USER_AGENT, DEFAULT_CLIENT_IP, userAuthenticator
-        ), HttpStatus.UNAUTHORIZED, "error.login.invalidCredentials");
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
+
+        Assertions.assertEquals(0, this.tokenRepository.findAll().size());
     }
 
     /**
@@ -264,7 +335,9 @@ class UserResourceTest {
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.login(
             DEFAULT_USER_AGENT, DEFAULT_CLIENT_IP, userAuthenticator
-        ), HttpStatus.UNAUTHORIZED, "error.login.invalidCredentials");
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
+
+        Assertions.assertEquals(0, this.tokenRepository.findAll().size());
     }
 
     /**
@@ -282,7 +355,9 @@ class UserResourceTest {
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.login(
             DEFAULT_USER_AGENT, DEFAULT_CLIENT_IP, userAuthenticator
-        ), HttpStatus.UNAUTHORIZED, "error.login.invalidCredentials");
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
+
+        Assertions.assertEquals(0, this.tokenRepository.findAll().size());
     }
 
     /**
@@ -300,7 +375,9 @@ class UserResourceTest {
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.login(
             DEFAULT_USER_AGENT, DEFAULT_CLIENT_IP, userAuthenticator
-        ), HttpStatus.UNAUTHORIZED, "error.login.invalidCredentials");
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
+
+        Assertions.assertEquals(0, this.tokenRepository.findAll().size());
     }
 
     /**
@@ -318,7 +395,9 @@ class UserResourceTest {
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.login(
             DEFAULT_USER_AGENT, DEFAULT_CLIENT_IP, userAuthenticator
-        ), HttpStatus.UNAUTHORIZED, "error.login.desactivatedUser");
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_DESACTIVATED);
+
+        Assertions.assertEquals(0, this.tokenRepository.findAll().size());
     }
 
     /**
@@ -336,6 +415,269 @@ class UserResourceTest {
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.login(
             DEFAULT_USER_AGENT, DEFAULT_CLIENT_IP, userAuthenticator
-        ), HttpStatus.UNAUTHORIZED, "error.login.desactivatedUser");
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_DESACTIVATED);
+
+        Assertions.assertEquals(0, this.tokenRepository.findAll().size());
+    }
+
+    /**
+     * Test a valid register
+     */
+    @Test
+    @Transactional
+    void testValidRegister() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is valid
+
+        new HttpResponseAssert<>(
+            this.userResource.register(UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER))
+        )
+            .assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .assertNullBody();
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        // Check if the user was created in the database
+
+        Assertions.assertEquals(nbInDbBeforeTest + 1, nbInDbAfterTest);
+
+        UserEntity user = this.userRepository.findByLoginOrEmail(
+            UserConstants.Users.NEW_VALID_USER.getLogin(),
+            UserConstants.Users.NEW_VALID_USER.getLogin()
+        ).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.NEW_VALID_USER.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.NEW_VALID_USER.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.NEW_VALID_USER.getPassword(), user.getPassword());
+        Assertions.assertNotNull(user.getCreatedAt());
+        Assertions.assertFalse(user.getActivated());
+        Assertions.assertNull(user.getTokens());
+    }
+
+    /**
+     * Test an invalid register because no email
+     */
+    @Test
+    void testInvalidRegisterBecauseNoEmail() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setEmail(null)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_NULL);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because empty email
+     */
+    @Test
+    void testInvalidRegisterBecauseEmptyEmail() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setEmail("")
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_NULL);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because invalid email
+     */
+    @ParameterizedTest(name = "#{index} - Run test with email = {0}")
+    @MethodSource("invalidEmailProvider")
+    void testInvalidRegisterBecauseInvalidEmail(String email) {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setEmail(email)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_INVALID);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because email already exists
+     */
+    @Test
+    void testInvalidRegisterBecauseAlreadyExistsEmail() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setEmail(UserConstants.Users.ACTIVATED.getEmail())
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_ALREADY_EXISTS);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because no login
+     */
+    @Test
+    void testInvalidRegisterBecauseNoLogin() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setLogin(null)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_NULL);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because empty login
+     */
+    @Test
+    void testInvalidRegisterBecauseEmptyLogin() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setLogin("")
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_NULL);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because invalid login
+     */
+    @ParameterizedTest(name = "#{index} - Run test with username = {0}")
+    @MethodSource("invalidLoginProvider")
+    void testInvalidRegisterBecauseInvalidLogin(String login) {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setLogin(login)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_INVALID);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because login already exists
+     */
+    @Test
+    void testInvalidRegisterBecauseAlreadyExistsLogin() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setLogin(UserConstants.Users.ACTIVATED.getLogin())
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_ALREADY_EXISTS);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because no password
+     */
+    @Test
+    void testInvalidRegisterBecauseNoPassword() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setPassword(null)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_NULL);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because empty password
+     */
+    @Test
+    void testInvalidRegisterBecauseEmptyPassword() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setPassword("")
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_NULL);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+    }
+
+    /**
+     * Test an invalid register because invalid password
+     */
+    @ParameterizedTest(name = "#{index} - Run test with password = {0}")
+    @MethodSource("invalidPasswordProvider")
+    void testInvalidRegisterBecauseInvalidPassword(String password) {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.register(
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setPassword(password)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_INVALID);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
     }
 }

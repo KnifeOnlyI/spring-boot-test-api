@@ -1,24 +1,54 @@
 package fr.koi.testapi.services;
 
+import fr.koi.testapi.constants.ErrorKeys;
 import fr.koi.testapi.domain.TokenEntity;
 import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.dto.JwtTokenDTO;
 import fr.koi.testapi.exception.RestException;
+import fr.koi.testapi.mapper.UserMapper;
 import fr.koi.testapi.model.user.JwtTokenModel;
 import fr.koi.testapi.model.user.UserAuthenticator;
+import fr.koi.testapi.model.user.UserRegister;
 import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * The service to manage users
  */
 @Service
 public class UserService {
+    /**
+     * The REGEX pattern for valid email
+     */
+    @SuppressWarnings("java:S3749")
+    private final Pattern validEmailRegex = Pattern.compile("^(.+)@(\\S+)$", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * The REGEX pattern for valid login
+     */
+    @SuppressWarnings("java:S3749")
+    private final Pattern validLoginRegex = Pattern.compile(
+        "^[A-Z0-9]([._-](?![._-])|[A-Z0-9]){3,18}[A-Z0-9]$",
+        Pattern.CASE_INSENSITIVE
+    );
+
+    /**
+     * The REGEX pattern for valid password
+     */
+    @SuppressWarnings({"java:S3749", "java:S4248"})
+    private final Pattern validPasswordRegex = Pattern.compile(
+        "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#&()–{}:;',?/*~$^+=<>]).{8,255}$"
+    );
+
+
     /**
      * The repository to manage users
      */
@@ -40,23 +70,31 @@ public class UserService {
     private final TokenRepository tokenRepository;
 
     /**
+     * The mapper for users
+     */
+    private final UserMapper userMapper;
+
+    /**
      * Create a new service to manage users
      *
      * @param userRepository  The repository to manage users
      * @param passwordService The service to manage passwords
      * @param jwtService      The service to manage JWT tokens
      * @param tokenRepository The repository to manage tokens
+     * @param userMapper      The mapper for users
      */
     public UserService(
         UserRepository userRepository,
         PasswordService passwordService,
         JwtService jwtService,
-        TokenRepository tokenRepository
+        TokenRepository tokenRepository,
+        UserMapper userMapper
     ) {
         this.userRepository = userRepository;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
         this.tokenRepository = tokenRepository;
+        this.userMapper = userMapper;
     }
 
     /**
@@ -92,6 +130,7 @@ public class UserService {
      *
      * @return The created JWT token model
      */
+    @SuppressWarnings("java:S2143")
     private JwtTokenModel createNewJwtToken(
         UserAuthenticator authenticator,
         UserEntity user,
@@ -131,6 +170,8 @@ public class UserService {
      *
      * @return The created JWT token
      */
+    @Transactional
+    @SuppressWarnings("java:S2143")
     public JwtTokenModel login(UserAuthenticator authenticator, String userAgent, String clientIp) {
         String loginOrEmail = authenticator.getLoginOrEmail() == null ? "" : authenticator.getLoginOrEmail();
 
@@ -143,9 +184,9 @@ public class UserService {
         boolean isActivated = user != null && Boolean.TRUE.equals(user.getActivated());
 
         if (passwordMatches && !isActivated) {
-            throw new RestException(HttpStatus.UNAUTHORIZED, "error.login.desactivatedUser");
+            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_DESACTIVATED);
         } else if (!passwordMatches) {
-            throw new RestException(HttpStatus.UNAUTHORIZED, "error.login.invalidCredentials");
+            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
         }
 
         Date currentDate = new Date();
@@ -153,5 +194,73 @@ public class UserService {
         this.deletePreviousIdenticalTokens(user, userAgent, clientIp, currentDate);
 
         return this.createNewJwtToken(authenticator, user, userAgent, clientIp, currentDate);
+    }
+
+    /**
+     * Perform a register
+     *
+     * @param userRegister The user register model
+     */
+    @Transactional
+    @SuppressWarnings("java:S2143")
+    public void register(UserRegister userRegister) {
+        this.checkEmail(userRegister.getEmail());
+        this.checkLogin(userRegister.getLogin());
+        this.checkPassword(userRegister.getPassword());
+
+        UserEntity user = this.userRepository.findByLoginOrEmail(
+            userRegister.getLogin(),
+            userRegister.getEmail()
+        ).orElse(null);
+
+        if (user != null && user.getEmail().equals(userRegister.getEmail())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_ALREADY_EXISTS);
+        } else if (user != null && user.getLogin().equals(userRegister.getLogin())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_ALREADY_EXISTS);
+        }
+
+        userRegister.setEmail(userRegister.getEmail().toLowerCase(Locale.ROOT));
+        userRegister.setLogin(userRegister.getLogin().toLowerCase(Locale.ROOT));
+
+        this.userRepository.save(this.userMapper.toEntity(userRegister).setCreatedAt(new Date()).setActivated(false));
+    }
+
+    /**
+     * Check if the specified email is valid
+     *
+     * @param email The email to check
+     */
+    private void checkEmail(String email) {
+        if (email == null || "".equals(email.strip())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_NULL);
+        } else if (!this.validEmailRegex.matcher(email).find()) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_INVALID);
+        }
+    }
+
+    /**
+     * Check if the specified login is valid
+     *
+     * @param login The login to check
+     */
+    private void checkLogin(String login) {
+        if (login == null || "".equals(login.strip())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_NULL);
+        } else if (!this.validLoginRegex.matcher(login).find()) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_INVALID);
+        }
+    }
+
+    /**
+     * Check if the specified password is valid
+     *
+     * @param password The password to check
+     */
+    private void checkPassword(String password) {
+        if (password == null || "".equals(password.strip())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_NULL);
+        } else if (!this.validPasswordRegex.matcher(password).find()) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_INVALID);
+        }
     }
 }

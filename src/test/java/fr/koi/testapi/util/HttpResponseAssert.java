@@ -120,9 +120,20 @@ public class HttpResponseAssert<T> {
     }
 
     /**
-     * Get a not null body
+     * Assert a null response body
      *
-     * @return The not null body
+     * @return this
+     */
+    public HttpResponseAssert<T> assertNullBody() {
+        Assertions.assertNull(this.response.getBody());
+
+        return this;
+    }
+
+    /**
+     * Get a not null response body
+     *
+     * @return The not null response body
      */
     public T getNotNullBody() {
         Assertions.assertNotNull(this.response.getBody());
