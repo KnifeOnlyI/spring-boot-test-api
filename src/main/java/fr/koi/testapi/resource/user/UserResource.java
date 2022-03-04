@@ -1,8 +1,8 @@
 package fr.koi.testapi.resource.user;
 
 import fr.koi.testapi.model.user.JwtTokenModel;
-import fr.koi.testapi.model.user.UserAuthenticator;
-import fr.koi.testapi.model.user.UserRegister;
+import fr.koi.testapi.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.model.user.UserRegisterModel;
 import fr.koi.testapi.services.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +46,7 @@ public class UserResource {
     public ResponseEntity<JwtTokenModel> login(
         @RequestHeader("User-Agent") String userAgent,
         @RequestHeader("X-Forwarded-For") String clientIp,
-        @RequestBody UserAuthenticator authenticator
+        @RequestBody UserAuthenticatorModel authenticator
     ) {
         return ResponseEntity.ok(this.userService.login(authenticator, userAgent, clientIp));
     }
@@ -59,7 +59,7 @@ public class UserResource {
      * @return Empty HTTP response
      */
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@RequestBody UserRegister userRegister) {
+    public ResponseEntity<Void> register(@RequestBody UserRegisterModel userRegister) {
         this.userService.register(userRegister);
 
         return ResponseEntity.ok(null);

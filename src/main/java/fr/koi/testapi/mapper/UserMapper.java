@@ -1,7 +1,7 @@
 package fr.koi.testapi.mapper;
 
 import fr.koi.testapi.domain.UserEntity;
-import fr.koi.testapi.model.user.UserRegister;
+import fr.koi.testapi.model.user.UserRegisterModel;
 import org.mapstruct.Mapper;
 import org.springframework.stereotype.Service;
 
@@ -18,5 +18,5 @@ public interface UserMapper {
      *
      * @return The corresponding entity
      */
-    UserEntity toEntity(UserRegister model);
+    UserEntity toEntity(UserRegisterModel model);
 }

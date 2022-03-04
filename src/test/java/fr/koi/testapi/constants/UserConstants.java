@@ -1,7 +1,7 @@
 package fr.koi.testapi.constants;
 
 import fr.koi.testapi.domain.UserEntity;
-import fr.koi.testapi.model.user.UserRegister;
+import fr.koi.testapi.model.user.UserRegisterModel;
 import fr.koi.testapi.util.DateUtil;
 
 /**
@@ -37,7 +37,7 @@ public final class UserConstants {
         /**
          * A valid register public model of non existing user
          */
-        public static final UserRegister NEW_VALID_USER = new UserRegister()
+        public static final UserRegisterModel NEW_VALID_USER = new UserRegisterModel()
             .setEmail("new_valid@user.com")
             .setLogin("new_valid")
             .setPassword("1P@ssword");
@@ -49,8 +49,8 @@ public final class UserConstants {
          *
          * @return The corresponding copy
          */
-        public static UserRegister getCopy(UserRegister userRegister) {
-            return new UserRegister()
+        public static UserRegisterModel getCopy(UserRegisterModel userRegister) {
+            return new UserRegisterModel()
                 .setEmail(userRegister.getEmail())
                 .setLogin(userRegister.getLogin())
                 .setPassword(userRegister.getPassword());

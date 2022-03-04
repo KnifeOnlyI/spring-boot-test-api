@@ -22,6 +22,16 @@ public final class ErrorKeys {
         public static final String LOGIN_DESACTIVATED = "error.login.desactivatedUser";
 
         /**
+         * Error when trying to login without User-Agent header
+         */
+        public static final String LOGIN_HEADER_USER_AGENT_NULL = "error.login.header.user_agent.null";
+
+        /**
+         * Error when trying to login without X-Forwarded-For header
+         */
+        public static final String LOGIN_HEADER_X_FORWARDED_FOR_NULL = "error.login.header.x_forwarded_for.null";
+
+        /**
          * Error when trying to register without email
          */
         public static final String REGISTER_EMAIL_NULL = "error.register.email.null";

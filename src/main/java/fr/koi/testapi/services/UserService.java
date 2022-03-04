@@ -7,8 +7,8 @@ import fr.koi.testapi.dto.JwtTokenDTO;
 import fr.koi.testapi.exception.RestException;
 import fr.koi.testapi.mapper.UserMapper;
 import fr.koi.testapi.model.user.JwtTokenModel;
-import fr.koi.testapi.model.user.UserAuthenticator;
-import fr.koi.testapi.model.user.UserRegister;
+import fr.koi.testapi.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.model.user.UserRegisterModel;
 import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -98,6 +98,28 @@ public class UserService {
     }
 
     /**
+     * Assert the specified authenticator is valid
+     *
+     * @param authenticator The user authenticator
+     */
+    private UserEntity assertUserIsActivatedAndPasswordMatches(UserAuthenticatorModel authenticator) {
+        String loginOrEmail = authenticator.getLoginOrEmail() == null ? "" : authenticator.getLoginOrEmail();
+
+        UserEntity user = this.userRepository.findByLoginOrEmail(loginOrEmail, loginOrEmail).orElse(null);
+
+        // Check if passwords matches and is user is activated
+        if (!(user != null &&
+            Boolean.TRUE.equals(this.passwordService.matches(authenticator.getPassword(), user.getPassword())))
+        ) {
+            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
+        } else if (Boolean.FALSE.equals(user.getActivated())) {
+            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_DESACTIVATED);
+        }
+
+        return user;
+    }
+
+    /**
      * Perform a logical deletion of the previous tokens has the specified data
      *
      * @param user        The owner of tokens to check
@@ -132,7 +154,7 @@ public class UserService {
      */
     @SuppressWarnings("java:S2143")
     private JwtTokenModel createNewJwtToken(
-        UserAuthenticator authenticator,
+        UserAuthenticatorModel authenticator,
         UserEntity user,
         String userAgent,
         String clientIp,
@@ -172,23 +194,14 @@ public class UserService {
      */
     @Transactional
     @SuppressWarnings("java:S2143")
-    public JwtTokenModel login(UserAuthenticator authenticator, String userAgent, String clientIp) {
-        String loginOrEmail = authenticator.getLoginOrEmail() == null ? "" : authenticator.getLoginOrEmail();
-
-        UserEntity user = this.userRepository.findByLoginOrEmail(loginOrEmail, loginOrEmail).orElse(null);
-
-        boolean passwordMatches = (user != null &&
-            Boolean.TRUE.equals(this.passwordService.matches(authenticator.getPassword(), user.getPassword()))
-        );
-
-        boolean isActivated = user != null && Boolean.TRUE.equals(user.getActivated());
-
-        if (passwordMatches && !isActivated) {
-            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_DESACTIVATED);
-        } else if (!passwordMatches) {
-            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_INVALID_CREDENTIALS);
+    public JwtTokenModel login(UserAuthenticatorModel authenticator, String userAgent, String clientIp) {
+        if (userAgent == null || "".equalsIgnoreCase(userAgent.strip())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.LOGIN_HEADER_USER_AGENT_NULL);
+        } else if (clientIp == null || "".equalsIgnoreCase(clientIp.strip())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.LOGIN_HEADER_X_FORWARDED_FOR_NULL);
         }
 
+        UserEntity user = this.assertUserIsActivatedAndPasswordMatches(authenticator);
         Date currentDate = new Date();
 
         this.deletePreviousIdenticalTokens(user, userAgent, clientIp, currentDate);
@@ -203,7 +216,7 @@ public class UserService {
      */
     @Transactional
     @SuppressWarnings("java:S2143")
-    public void register(UserRegister userRegister) {
+    public void register(UserRegisterModel userRegister) {
         this.checkEmail(userRegister.getEmail());
         this.checkLogin(userRegister.getLogin());
         this.checkPassword(userRegister.getPassword());

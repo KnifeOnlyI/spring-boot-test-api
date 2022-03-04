@@ -6,7 +6,7 @@ import fr.koi.testapi.domain.TokenEntity;
 import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.dto.JwtTokenDTO;
 import fr.koi.testapi.model.user.JwtTokenModel;
-import fr.koi.testapi.model.user.UserAuthenticator;
+import fr.koi.testapi.model.user.UserAuthenticatorModel;
 import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
 import fr.koi.testapi.services.JwtService;
@@ -123,7 +123,7 @@ class UserResourceTest {
      */
     @Test
     void testValidLoginWithEmailAndRememberMe() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
             .setPassword(UserConstants.Users.ACTIVATED.getPassword())
             .setRememberMe(true);
@@ -168,7 +168,7 @@ class UserResourceTest {
      */
     @Test
     void testValidLoginWithLoginAndRememberMe() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.ACTIVATED.getLogin())
             .setPassword(UserConstants.Users.ACTIVATED.getPassword())
             .setRememberMe(true);
@@ -213,7 +213,7 @@ class UserResourceTest {
      */
     @Test
     void testValidLoginWithEmailWithoutRememberMe() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
             .setPassword(UserConstants.Users.ACTIVATED.getPassword())
             .setRememberMe(false);
@@ -259,7 +259,7 @@ class UserResourceTest {
      */
     @Test
     void testValidLoginWithLoginWithoutRememberMe() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.ACTIVATED.getLogin())
             .setPassword(UserConstants.Users.ACTIVATED.getPassword())
             .setRememberMe(false);
@@ -306,7 +306,7 @@ class UserResourceTest {
     @Test
     @SuppressWarnings("java:S2699")
     void testInvalidLoginWithInvalidEmailAndPasswordBecauseInvalidCredentials() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(null)
             .setPassword(null)
             .setRememberMe(false);
@@ -326,7 +326,7 @@ class UserResourceTest {
     @Test
     @SuppressWarnings("java:S2699")
     void testInvalidLoginWithInvalidCredentialsLoginPasswordBecauseInvalidCredentials() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(null)
             .setPassword(null)
             .setRememberMe(false);
@@ -346,7 +346,7 @@ class UserResourceTest {
     @Test
     @SuppressWarnings("java:S2699")
     void testInvalidLoginWithValidEmailAndInvalidPasswordAndDesactivated() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.DESACTIVATED.getEmail())
             .setPassword(null)
             .setRememberMe(false);
@@ -366,7 +366,7 @@ class UserResourceTest {
     @Test
     @SuppressWarnings("java:S2699")
     void testInvalidLoginWithLoginAndInvalidPasswordAndDesactivated() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.DESACTIVATED.getLogin())
             .setPassword(null)
             .setRememberMe(false);
@@ -386,7 +386,7 @@ class UserResourceTest {
     @Test
     @SuppressWarnings("java:S2699")
     void testInvalidLoginWithValidEmailAndPasswordBecauseDesactivated() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.DESACTIVATED.getEmail())
             .setPassword(UserConstants.Users.DESACTIVATED.getPassword())
             .setRememberMe(false);
@@ -406,7 +406,7 @@ class UserResourceTest {
     @Test
     @SuppressWarnings("java:S2699")
     void testInvalidLoginWithValidLoginAndPasswordBecauseDesactivated() {
-        UserAuthenticator userAuthenticator = new UserAuthenticator()
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
             .setLoginOrEmail(UserConstants.Users.DESACTIVATED.getLogin())
             .setPassword(UserConstants.Users.DESACTIVATED.getPassword())
             .setRememberMe(false);
@@ -418,6 +418,62 @@ class UserResourceTest {
         ), HttpStatus.UNAUTHORIZED, ErrorKeys.User.LOGIN_DESACTIVATED);
 
         Assertions.assertEquals(0, this.tokenRepository.findAll().size());
+    }
+
+    /**
+     * Test an invalid login because missing headers :
+     * - User-Agent
+     * - X-Forwarded-For
+     */
+    @Test
+    @SuppressWarnings("java:S2699")
+    void testInvalidLoginBecauseMissingUserAgentAndXForwardedForHeaders() {
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
+            .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
+            .setPassword(UserConstants.Users.ACTIVATED.getPassword())
+            .setRememberMe(true);
+
+        HttpResponseAssert.AssertRestException(
+            () -> this.userResource.login(null, null, userAuthenticator),
+            HttpStatus.BAD_REQUEST,
+            ErrorKeys.User.LOGIN_HEADER_USER_AGENT_NULL
+        );
+    }
+
+    /**
+     * Test an invalid login because missing header : User-Agent
+     */
+    @Test
+    @SuppressWarnings("java:S2699")
+    void testInvalidLoginBecauseMissingUserAgentHeader() {
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
+            .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
+            .setPassword(UserConstants.Users.ACTIVATED.getPassword())
+            .setRememberMe(true);
+
+        HttpResponseAssert.AssertRestException(
+            () -> this.userResource.login(null, DEFAULT_CLIENT_IP, userAuthenticator),
+            HttpStatus.BAD_REQUEST,
+            ErrorKeys.User.LOGIN_HEADER_USER_AGENT_NULL
+        );
+    }
+
+    /**
+     * Test an invalid login because missing header : X-Forwarded-For
+     */
+    @Test
+    @SuppressWarnings("java:S2699")
+    void testInvalidLoginBecauseMissingXForwardedForHeader() {
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
+            .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
+            .setPassword(UserConstants.Users.ACTIVATED.getPassword())
+            .setRememberMe(true);
+
+        HttpResponseAssert.AssertRestException(
+            () -> this.userResource.login(DEFAULT_USER_AGENT, null, userAuthenticator),
+            HttpStatus.BAD_REQUEST,
+            ErrorKeys.User.LOGIN_HEADER_X_FORWARDED_FOR_NULL
+        );
     }
 
     /**
