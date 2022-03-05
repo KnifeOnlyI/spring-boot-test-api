@@ -32,6 +32,16 @@ public final class ErrorKeys {
         public static final String LOGIN_HEADER_X_FORWARDED_FOR_NULL = "error.login.header.x_forwarded_for.null";
 
         /**
+         * Error when trying to logout without token
+         */
+        public static final String LOGOUT_TOKEN_NULL = "error.logout.token.null";
+
+        /**
+         * Error when trying to logout with a non existant token
+         */
+        public static final String LOGOUT_TOKEN_NOT_EXISTS = "error.logout.token.not_exists";
+
+        /**
          * Error when trying to register without email
          */
         public static final String REGISTER_EMAIL_NULL = "error.register.email.null";

@@ -736,4 +736,83 @@ class UserResourceTest {
 
         Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
     }
+
+    /**
+     * Test a valid logout
+     */
+    @Test
+    void testValidLogout() {
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
+            .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
+            .setPassword(UserConstants.Users.ACTIVATED.getPassword())
+            .setRememberMe(true);
+
+        String token = new HttpResponseAssert<>(this.userResource.login(
+            DEFAULT_USER_AGENT,
+            DEFAULT_CLIENT_IP,
+            userAuthenticator
+        )).assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .getNotNullBody().getToken();
+
+        // Check if response is valid
+
+        new HttpResponseAssert<>(this.userResource.logout(token))
+            .assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .assertNullBody();
+
+        // Check if token in database is now disabled
+
+        List<TokenEntity> tokens = this.tokenRepository.findAll();
+
+        Assertions.assertEquals(1, tokens.size());
+
+        TokenEntity createdToken = tokens.get(0);
+
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getId(), createdToken.getId());
+        Assertions.assertEquals(token, createdToken.getValue());
+        Assertions.assertNotNull(createdToken.getCreatedAt());
+        Assertions.assertTrue(createdToken.getDeleted());
+    }
+
+    /**
+     * Test an invalid logout because no token provided
+     */
+    @Test
+    void testInvalidLogoutBecauseNoTokenProvided() {
+        // Check if response is valid
+
+        HttpResponseAssert.AssertRestException(
+            () -> this.userResource.logout(null),
+            HttpStatus.BAD_REQUEST,
+            ErrorKeys.User.LOGOUT_TOKEN_NULL
+        );
+
+        // Check if token in database is now disabled
+
+        List<TokenEntity> tokens = this.tokenRepository.findAll();
+
+        Assertions.assertEquals(0, tokens.size());
+    }
+
+    /**
+     * Test an invalid logout because non existant token provided
+     */
+    @Test
+    void testInvalidLogoutBecauseNoExistantTokenProvided() {
+        // Check if response is valid
+
+        HttpResponseAssert.AssertRestException(
+            () -> this.userResource.logout("non_existant_token"),
+            HttpStatus.BAD_REQUEST,
+            ErrorKeys.User.LOGOUT_TOKEN_NOT_EXISTS
+        );
+
+        // Check if token in database is now disabled
+
+        List<TokenEntity> tokens = this.tokenRepository.findAll();
+
+        Assertions.assertEquals(0, tokens.size());
+    }
 }

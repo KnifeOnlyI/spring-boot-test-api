@@ -18,6 +18,7 @@ import javax.transaction.Transactional;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -236,6 +237,23 @@ public class UserService {
         userRegister.setLogin(userRegister.getLogin().toLowerCase(Locale.ROOT));
 
         this.userRepository.save(this.userMapper.toEntity(userRegister).setCreatedAt(new Date()).setActivated(false));
+    }
+
+    /**
+     * Perform a logout
+     *
+     * @param tokenValue The token to delete
+     */
+    public void logout(String tokenValue) {
+        String nonNullableToken = Optional.ofNullable(tokenValue)
+            .orElseThrow(() -> new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.LOGOUT_TOKEN_NULL));
+
+        TokenEntity token = this.tokenRepository.getTokenByValue(nonNullableToken)
+            .orElseThrow(() -> new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.LOGOUT_TOKEN_NOT_EXISTS));
+
+        token.setDeleted(true);
+
+        this.tokenRepository.save(token);
     }
 
     /**

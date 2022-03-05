@@ -6,6 +6,7 @@ import fr.koi.testapi.model.user.UserRegisterModel;
 import fr.koi.testapi.services.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -61,6 +62,20 @@ public class UserResource {
     @PostMapping("/register")
     public ResponseEntity<Void> register(@RequestBody UserRegisterModel userRegister) {
         this.userService.register(userRegister);
+
+        return ResponseEntity.ok(null);
+    }
+
+    /**
+     * Perform a logout of the specified token
+     *
+     * @param token The token to delete
+     *
+     * @return Empty HTTP response
+     */
+    @GetMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String token) {
+        this.userService.logout(token);
 
         return ResponseEntity.ok(null);
     }
