@@ -3,11 +3,14 @@ package fr.koi.testapi.web.controller.user;
 import fr.koi.testapi.services.UserService;
 import fr.koi.testapi.web.model.user.JwtTokenModel;
 import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.web.model.user.UserModel;
 import fr.koi.testapi.web.model.user.UserRegisterModel;
+import fr.koi.testapi.web.model.user.UserUpdateEmailOrLoginModel;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -67,15 +70,30 @@ public class UserController {
     }
 
     /**
-     * Perform a logout of the specified token
+     * Perform an update of email and/or login of the specified user
      *
-     * @param token The token to delete
+     * @param model The update model
+     *
+     * @return The updated user
+     */
+    @PutMapping("/update/email-or-login")
+    public ResponseEntity<UserModel> updateEmailOrLogin(
+        @RequestHeader("Authorization") String authorization,
+        @RequestBody UserUpdateEmailOrLoginModel model
+    ) {
+        return null;
+    }
+
+    /**
+     * Perform a logout of the specified authorization
+     *
+     * @param authorization The authorization that contains the token to delete
      *
      * @return Empty HTTP response
      */
     @GetMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String token) {
-        this.userService.logout(token);
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorization) {
+        this.userService.logout(authorization);
 
         return ResponseEntity.ok(null);
     }

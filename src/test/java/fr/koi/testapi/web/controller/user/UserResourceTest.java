@@ -78,6 +78,30 @@ class UserResourceTest {
     }
 
     /**
+     * Provide a list of already existing emails
+     *
+     * @return List of already existing emails
+     */
+    private static Stream<String> alreadyExistsEmailsProvider() {
+        return Stream.of(
+            UserConstants.Users.ACTIVATED.getEmail(),
+            UserConstants.Users.DESACTIVATED.getEmail()
+        );
+    }
+
+    /**
+     * Provide a list of already existing logins
+     *
+     * @return List of already existing logins
+     */
+    private static Stream<String> alreadyExistsLoginsProvider() {
+        return Stream.of(
+            UserConstants.Users.ACTIVATED.getLogin(),
+            UserConstants.Users.DESACTIVATED.getLogin()
+        );
+    }
+
+    /**
      * Provide a list of invalid login
      *
      * @return List of invalid login
@@ -115,6 +139,22 @@ class UserResourceTest {
             "java REGEX 123 %",         // invalid, % is not in the special character group []
             "________",                 // invalid
             "--------"                  // invalid
+        );
+    }
+
+    /**
+     * Provide a list of invalid authorization headers
+     *
+     * @return List of invalid authorization headers
+     */
+    private static Stream<String> invalidAuthorizationHeaderProvider() {
+        return Stream.of(
+            "",
+            "    ",
+            "TEST",
+            " TEST ",
+            " Bearer test",
+            " TEST   654 654654 654"
         );
     }
 
@@ -578,14 +618,15 @@ class UserResourceTest {
     /**
      * Test an invalid register because email already exists
      */
-    @Test
-    void testInvalidRegisterBecauseAlreadyExistsEmail() {
+    @ParameterizedTest(name = "#{index} - Run test with email = {0}")
+    @MethodSource("alreadyExistsEmailsProvider")
+    void testInvalidRegisterBecauseAlreadyExistsEmail(String email) {
         int nbInDbBeforeTest = this.userRepository.findAll().size();
 
         // Check if response is invalid
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.register(
-            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setEmail(UserConstants.Users.ACTIVATED.getEmail())
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setEmail(email)
         ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_ALREADY_EXISTS);
 
         // Check the user was not created in the database
@@ -659,14 +700,15 @@ class UserResourceTest {
     /**
      * Test an invalid register because login already exists
      */
-    @Test
-    void testInvalidRegisterBecauseAlreadyExistsLogin() {
+    @ParameterizedTest(name = "#{index} - Run test with login = {0}")
+    @MethodSource("alreadyExistsLoginsProvider")
+    void testInvalidRegisterBecauseAlreadyExistsLogin(String login) {
         int nbInDbBeforeTest = this.userRepository.findAll().size();
 
         // Check if response is invalid
 
         HttpResponseAssert.AssertRestException(() -> this.userResource.register(
-            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setLogin(UserConstants.Users.ACTIVATED.getLogin())
+            UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER).setLogin(login)
         ), HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_ALREADY_EXISTS);
 
         // Check the user was not created in the database
@@ -757,7 +799,7 @@ class UserResourceTest {
 
         // Check if response is valid
 
-        new HttpResponseAssert<>(this.userResource.logout(token))
+        new HttpResponseAssert<>(this.userResource.logout(String.format("Bearer %s", token)))
             .assertHttpStatus(HttpStatus.OK)
             .assertNbHeaders(0)
             .assertNullBody();
@@ -777,19 +819,40 @@ class UserResourceTest {
     }
 
     /**
-     * Test an invalid logout because no token provided
+     * Test an invalid logout because no authorization header provided
      */
     @Test
-    void testInvalidLogoutBecauseNoTokenProvided() {
-        // Check if response is valid
+    void testInvalidLogoutBecauseNoAuthorizationHeaderProvided() {
+        // Check if response is invalid
 
         HttpResponseAssert.AssertRestException(
             () -> this.userResource.logout(null),
             HttpStatus.BAD_REQUEST,
-            ErrorKeys.User.LOGOUT_TOKEN_NULL
+            ErrorKeys.Authorization.HEADER_NULL
         );
 
-        // Check if token in database is now disabled
+        // Check no token created in database
+
+        List<TokenEntity> tokens = this.tokenRepository.findAll();
+
+        Assertions.assertEquals(0, tokens.size());
+    }
+
+    /**
+     * Test an invalid logout because invalid authorization header provided
+     */
+    @ParameterizedTest(name = "#{index} - Run test with authorization header = {0}")
+    @MethodSource("invalidAuthorizationHeaderProvider")
+    void testInvalidLogoutBecauseInvalidAuthorizationHeaderProvided(String authorizationHeader) {
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(
+            () -> this.userResource.logout(authorizationHeader),
+            HttpStatus.BAD_REQUEST,
+            ErrorKeys.Authorization.HEADER_INVALID
+        );
+
+        // Check no token created in database
 
         List<TokenEntity> tokens = this.tokenRepository.findAll();
 
@@ -801,15 +864,15 @@ class UserResourceTest {
      */
     @Test
     void testInvalidLogoutBecauseNoExistantTokenProvided() {
-        // Check if response is valid
+        // Check if response is invalid
 
         HttpResponseAssert.AssertRestException(
-            () -> this.userResource.logout("non_existant_token"),
+            () -> this.userResource.logout("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"),
             HttpStatus.BAD_REQUEST,
-            ErrorKeys.User.LOGOUT_TOKEN_NOT_EXISTS
+            ErrorKeys.Authorization.TOKEN_NOT_EXISTS
         );
 
-        // Check if token in database is now disabled
+        // Check no token created in database
 
         List<TokenEntity> tokens = this.tokenRepository.findAll();
 

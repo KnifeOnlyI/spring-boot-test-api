@@ -18,7 +18,6 @@ import javax.transaction.Transactional;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -26,6 +25,13 @@ import java.util.regex.Pattern;
  */
 @Service
 public class UserService {
+    /**
+     * The REGEX pattern for valid bearer
+     */
+    private static final Pattern validBearerHeader = Pattern.compile(
+        "^Bearer\\s[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+$"
+    );
+
     /**
      * The REGEX pattern for valid email
      */
@@ -240,20 +246,76 @@ public class UserService {
     }
 
     /**
+     * Get the token value of the specified authorization header
+     *
+     * @param authorization The authorization header
+     *
+     * @return The token value
+     */
+    @SuppressWarnings("java:S109")
+    private static String getTokenValueOfAuthorization(String authorization) {
+        if (authorization == null) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.Authorization.HEADER_NULL);
+        }
+
+        if (!validBearerHeader.matcher(authorization).find()) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.Authorization.HEADER_INVALID);
+        }
+
+        return authorization.split(" ")[1];
+    }
+
+    /**
      * Perform a logout
      *
-     * @param tokenValue The token to delete
+     * @param authorization The authorization that contains the token to delete
      */
-    public void logout(String tokenValue) {
-        String nonNullableToken = Optional.ofNullable(tokenValue)
-            .orElseThrow(() -> new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.LOGOUT_TOKEN_NULL));
+    public void logout(String authorization) {
+        this.tokenRepository.save(getTokenOfAuthorization(authorization).setDeleted(true));
+    }
 
-        TokenEntity token = this.tokenRepository.getTokenByValue(nonNullableToken)
-            .orElseThrow(() -> new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.LOGOUT_TOKEN_NOT_EXISTS));
+    /**
+     * Get the user of the specified authorization header
+     *
+     * @param authorization The authorization header
+     *
+     * @return The founded user
+     */
+    @SuppressWarnings("java:S2143")
+    public UserEntity getUserOfAuthorization(String authorization) {
+        TokenEntity tokenEntity = this.getTokenOfAuthorization(authorization);
+        JwtTokenDTO jwtTokenDTO = this.jwtService.verify(tokenEntity.getValue());
 
-        token.setDeleted(true);
+        if (jwtTokenDTO.getExpirationDate().before(new Date())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.Authorization.TOKEN_NOT_EXISTS);
+        }
 
-        this.tokenRepository.save(token);
+        UserEntity user = this.userRepository.findById(jwtTokenDTO.getUserId())
+            .orElseThrow(() -> new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.NOT_EXISTS));
+
+        if (Boolean.FALSE.equals(user.getActivated())) {
+            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.User.NOT_ACTIVATED);
+        }
+
+        return user;
+    }
+
+    /**
+     * Get the token entity in the database corresponding to the specified authorization header
+     *
+     * @param authorization The authorization header
+     *
+     * @return The corresponding token entity
+     */
+    public TokenEntity getTokenOfAuthorization(String authorization) {
+        TokenEntity token = this.tokenRepository.getTokenByValue(getTokenValueOfAuthorization(authorization))
+            .orElse(null);
+
+        if (token == null || Boolean.TRUE.equals(token.getDeleted())) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.Authorization.TOKEN_NOT_EXISTS);
+        }
+
+        return token;
     }
 
     /**

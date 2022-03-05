@@ -8,9 +8,42 @@ public final class ErrorKeys {
     }
 
     /**
+     * Contains all error keys about authorization
+     */
+    public static final class Authorization {
+        /**
+         * Error when not provided authorization header
+         */
+        public static final String HEADER_NULL = "error.authorization.header.null";
+
+        /**
+         * Error when invalid authorization header provided
+         */
+        public static final String HEADER_INVALID = "error.authorization.header.invalid";
+
+        /**
+         * Error when the provided token not exists
+         */
+        public static final String TOKEN_NOT_EXISTS = "error.authorization.token.not_exists";
+
+        private Authorization() {
+        }
+    }
+
+    /**
      * Contains all error keys about user
      */
     public static final class User {
+        /**
+         * Error when requested user not exists
+         */
+        public static final String NOT_EXISTS = "error.user.not_exists";
+
+        /**
+         * Error when requested user is not activated
+         */
+        public static final String NOT_ACTIVATED = "error.user.not_activated";
+
         /**
          * Error when invalid credentials are detected
          */
@@ -30,16 +63,6 @@ public final class ErrorKeys {
          * Error when trying to login without X-Forwarded-For header
          */
         public static final String LOGIN_HEADER_X_FORWARDED_FOR_NULL = "error.login.header.x_forwarded_for.null";
-
-        /**
-         * Error when trying to logout without token
-         */
-        public static final String LOGOUT_TOKEN_NULL = "error.logout.token.null";
-
-        /**
-         * Error when trying to logout with a non existant token
-         */
-        public static final String LOGOUT_TOKEN_NOT_EXISTS = "error.logout.token.not_exists";
 
         /**
          * Error when trying to register without email
