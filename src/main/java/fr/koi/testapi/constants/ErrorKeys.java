@@ -26,6 +26,11 @@ public final class ErrorKeys {
          */
         public static final String TOKEN_NOT_EXISTS = "error.authorization.token.not_exists";
 
+        /**
+         * Error when the user provided in token not have a permission
+         */
+        public static final String NOT_AUTHORIZED = "error.authorization.not_authorized";
+
         private Authorization() {
         }
     }

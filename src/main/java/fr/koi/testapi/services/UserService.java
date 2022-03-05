@@ -1,6 +1,8 @@
 package fr.koi.testapi.services;
 
 import fr.koi.testapi.constants.ErrorKeys;
+import fr.koi.testapi.domain.GroupEntity;
+import fr.koi.testapi.domain.PermissionEntity;
 import fr.koi.testapi.domain.TokenEntity;
 import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.dto.JwtTokenDTO;
@@ -17,7 +19,9 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -26,10 +30,10 @@ import java.util.regex.Pattern;
 @Service
 public class UserService {
     /**
-     * The REGEX pattern for valid bearer
+     * The REGEX pattern for valid header authorization
      */
     private static final Pattern validBearerHeader = Pattern.compile(
-        "^Bearer\\s[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+$"
+        "^Bearer\s[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+$"
     );
 
     /**
@@ -54,7 +58,6 @@ public class UserService {
     private final Pattern validPasswordRegex = Pattern.compile(
         "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#&()–{}:;',?/*~$^+=<>]).{8,255}$"
     );
-
 
     /**
      * The repository to manage users
@@ -272,6 +275,32 @@ public class UserService {
      */
     public void logout(String authorization) {
         this.tokenRepository.save(getTokenOfAuthorization(authorization).setDeleted(true));
+    }
+
+    /**
+     * Assert the user in the specified authorization header has the specified permissions
+     *
+     * @param authorization       The authorization header
+     * @param expectedPermissions The expected permissions
+     */
+    @SuppressWarnings("java:S923")
+    public void assertHasPermission(String authorization, String... expectedPermissions) {
+        UserEntity user = this.getUserOfAuthorization(authorization);
+        Map<String, Boolean> userPermissions = new HashMap<>();
+
+        // Get all user permissions list
+        for (GroupEntity group : user.getGroups()) {
+            for (PermissionEntity permission : group.getPermissions()) {
+                userPermissions.put(permission.getName().toLowerCase(Locale.ROOT), true);
+            }
+        }
+
+        // Search if the user have all expected permissions
+        for (String permission : expectedPermissions) {
+            if (userPermissions.get(permission.toLowerCase(Locale.ROOT)) == null) {
+                throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.Authorization.NOT_AUTHORIZED);
+            }
+        }
     }
 
     /**
