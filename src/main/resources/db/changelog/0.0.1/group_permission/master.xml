@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="0.0.1-group_permission" author="knife">
+        <createTable tableName="group_permission">
+            <column name="group_id" type="bigint">
+                <constraints primaryKey="true"
+                             nullable="false"
+                             foreignKeyName="group_permission_group_id_koi_group_id"
+                             referencedTableName="koi_group"
+                             referencedColumnNames="id" />
+            </column>
+            <column name="permission_id" type="bigint">
+                <constraints primaryKey="true"
+                             nullable="false"
+                             foreignKeyName="group_permission_permission_id_permission_id"
+                             referencedTableName="permission"
+                             referencedColumnNames="id" />
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

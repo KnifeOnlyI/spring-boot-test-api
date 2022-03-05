@@ -1,18 +1,18 @@
-package fr.koi.testapi.model.user;
+package fr.koi.testapi.web.model.error;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
- * Represent a JWT token public model
+ * Represent a REST error
  */
 @Getter
 @Setter
 @Accessors(chain = true)
-public class JwtTokenModel {
+public class RestError {
     /**
-     * The token value
+     * The error key
      */
-    private String token;
+    private String key;
 }

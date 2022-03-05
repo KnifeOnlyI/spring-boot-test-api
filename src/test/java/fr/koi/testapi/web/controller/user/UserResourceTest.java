@@ -1,16 +1,16 @@
-package fr.koi.testapi.resource.user;
+package fr.koi.testapi.web.controller.user;
 
 import fr.koi.testapi.constants.ErrorKeys;
 import fr.koi.testapi.constants.UserConstants;
 import fr.koi.testapi.domain.TokenEntity;
 import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.dto.JwtTokenDTO;
-import fr.koi.testapi.model.user.JwtTokenModel;
-import fr.koi.testapi.model.user.UserAuthenticatorModel;
 import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
 import fr.koi.testapi.services.JwtService;
-import fr.koi.testapi.util.HttpResponseAssert;
+import fr.koi.testapi.utils.HttpResponseAssert;
+import fr.koi.testapi.web.model.user.JwtTokenModel;
+import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,7 +45,7 @@ class UserResourceTest {
      * The web resource to manage users
      */
     @Autowired
-    private UserResource userResource;
+    private UserController userResource;
 
     /**
      * The repository to manage tokens in database

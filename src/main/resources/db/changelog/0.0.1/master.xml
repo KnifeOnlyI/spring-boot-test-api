@@ -5,4 +5,8 @@
 
     <include relativeToChangelogFile="true" file="user/master.xml" />
     <include relativeToChangelogFile="true" file="token/master.xml" />
+    <include relativeToChangelogFile="true" file="group/master.xml" />
+    <include relativeToChangelogFile="true" file="permission/master.xml" />
+    <include relativeToChangelogFile="true" file="user_group/master.xml" />
+    <include relativeToChangelogFile="true" file="group_permission/master.xml" />
 </databaseChangeLog>

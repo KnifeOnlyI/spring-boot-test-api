@@ -41,6 +41,7 @@ public class TokenEntity {
      * The creation date
      */
     @Column(name = "created_at")
+    @SuppressWarnings("java:S2143")
     private Date createdAt = new Date();
 
     /**

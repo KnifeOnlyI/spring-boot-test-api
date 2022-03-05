@@ -1,4 +1,4 @@
-package fr.koi.testapi.util;
+package fr.koi.testapi.utils;
 
 import org.springframework.http.ResponseEntity;
 

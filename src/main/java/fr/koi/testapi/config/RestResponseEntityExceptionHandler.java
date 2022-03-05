@@ -1,7 +1,7 @@
 package fr.koi.testapi.config;
 
 import fr.koi.testapi.exception.RestException;
-import fr.koi.testapi.model.error.RestError;
+import fr.koi.testapi.web.model.error.RestError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

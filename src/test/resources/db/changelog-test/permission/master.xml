@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="test-permission" author="knife">
+        <loadData tableName="permission" relativeToChangelogFile="true" file="data.csv" />
+
+        <sql>ALTER SEQUENCE permission_id_seq RESTART WITH 3</sql>
+    </changeSet>
+</databaseChangeLog>

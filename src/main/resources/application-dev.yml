@@ -3,9 +3,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/test
     username: test
     password: test
-
   liquibase:
     change-log: classpath:/db/changelog/master.xml
+  jpa:
+    show-sql: true
 
 jwt:
   secret: the-secret-jwt

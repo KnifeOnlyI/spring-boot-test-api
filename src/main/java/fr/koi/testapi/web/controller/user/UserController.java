@@ -1,9 +1,9 @@
-package fr.koi.testapi.resource.user;
+package fr.koi.testapi.web.controller.user;
 
-import fr.koi.testapi.model.user.JwtTokenModel;
-import fr.koi.testapi.model.user.UserAuthenticatorModel;
-import fr.koi.testapi.model.user.UserRegisterModel;
 import fr.koi.testapi.services.UserService;
+import fr.koi.testapi.web.model.user.JwtTokenModel;
+import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.web.model.user.UserRegisterModel;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(path = "/api/user", produces = MediaType.APPLICATION_JSON_VALUE)
-public class UserResource {
+public class UserController {
     /**
      * The service to manage users
      */
@@ -29,7 +29,7 @@ public class UserResource {
      *
      * @param userService The service to manage users
      */
-    public UserResource(UserService userService) {
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 

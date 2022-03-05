@@ -10,6 +10,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -65,4 +67,15 @@ public class UserEntity {
     @OneToMany(orphanRemoval = true)
     @JoinColumn(name = "user_id")
     private List<TokenEntity> tokens;
+
+    /**
+     * The groups
+     */
+    @ManyToMany
+    @JoinTable(
+        name = "user_group",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private List<GroupEntity> groups;
 }

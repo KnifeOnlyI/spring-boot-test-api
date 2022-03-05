@@ -1,8 +1,8 @@
 package fr.koi.testapi.constants;
 
 import fr.koi.testapi.domain.UserEntity;
-import fr.koi.testapi.model.user.UserRegisterModel;
-import fr.koi.testapi.util.DateUtil;
+import fr.koi.testapi.utils.DateUtil;
+import fr.koi.testapi.web.model.user.UserRegisterModel;
 
 /**
  * Contains all constants about users testing

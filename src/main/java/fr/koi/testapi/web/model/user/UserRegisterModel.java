@@ -1,4 +1,4 @@
-package fr.koi.testapi.model.user;
+package fr.koi.testapi.web.model.user;
 
 import lombok.Getter;
 import lombok.Setter;

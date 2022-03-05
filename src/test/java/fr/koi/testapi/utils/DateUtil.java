@@ -1,4 +1,4 @@
-package fr.koi.testapi.util;
+package fr.koi.testapi.utils;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

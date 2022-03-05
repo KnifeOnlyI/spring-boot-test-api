@@ -6,11 +6,11 @@ import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.dto.JwtTokenDTO;
 import fr.koi.testapi.exception.RestException;
 import fr.koi.testapi.mapper.UserMapper;
-import fr.koi.testapi.model.user.JwtTokenModel;
-import fr.koi.testapi.model.user.UserAuthenticatorModel;
-import fr.koi.testapi.model.user.UserRegisterModel;
 import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
+import fr.koi.testapi.web.model.user.JwtTokenModel;
+import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.web.model.user.UserRegisterModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
