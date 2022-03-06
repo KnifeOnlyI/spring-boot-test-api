@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class UserUpdateEmailOrLoginModel {
+public class UserUpdateEmailLoginModel {
     /**
      * The ID
      */

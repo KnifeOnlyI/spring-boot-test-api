@@ -3,6 +3,7 @@ package fr.koi.testapi.constants;
 import fr.koi.testapi.domain.UserEntity;
 import fr.koi.testapi.utils.DateUtil;
 import fr.koi.testapi.web.model.user.UserRegisterModel;
+import fr.koi.testapi.web.model.user.UserUpdateEmailLoginModel;
 
 /**
  * Contains all constants about users testing
@@ -43,17 +44,39 @@ public final class UserConstants {
             .setPassword("1P@ssword");
 
         /**
-         * Get a copy of specified user register public model
+         * A valid update login or email public model of non existing user
+         */
+        public static final UserUpdateEmailLoginModel UPDATED_ACTIVATED_USER = new UserUpdateEmailLoginModel()
+            .setId(ACTIVATED.getId())
+            .setEmail("update_activated@user.com")
+            .setLogin("update_activated");
+
+        /**
+         * Get a copy of specified model
          *
-         * @param userRegister The user register to copy
+         * @param model The model to copy
          *
          * @return The corresponding copy
          */
-        public static UserRegisterModel getCopy(UserRegisterModel userRegister) {
+        public static UserRegisterModel getCopy(UserRegisterModel model) {
             return new UserRegisterModel()
-                .setEmail(userRegister.getEmail())
-                .setLogin(userRegister.getLogin())
-                .setPassword(userRegister.getPassword());
+                .setEmail(model.getEmail())
+                .setLogin(model.getLogin())
+                .setPassword(model.getPassword());
+        }
+
+        /**
+         * Get a copy of specified model
+         *
+         * @param model The model to copy
+         *
+         * @return The corresponding copy
+         */
+        public static UserUpdateEmailLoginModel getCopy(UserUpdateEmailLoginModel model) {
+            return new UserUpdateEmailLoginModel()
+                .setId(model.getId())
+                .setEmail(model.getEmail())
+                .setLogin(model.getLogin());
         }
     }
 }

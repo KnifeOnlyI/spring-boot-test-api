@@ -52,7 +52,7 @@ public class HttpResponseAssert<T> {
 
             noError = false;
         } catch (Throwable e) {
-            throw new AssertionFailedError("Expected RestException", RestException.class, e.getClass());
+            throw new AssertionFailedError("Expected RestException", RestException.class, e.getClass(), e);
         }
 
         if (noError) {

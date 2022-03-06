@@ -5,7 +5,7 @@ import fr.koi.testapi.web.model.user.JwtTokenModel;
 import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
 import fr.koi.testapi.web.model.user.UserModel;
 import fr.koi.testapi.web.model.user.UserRegisterModel;
-import fr.koi.testapi.web.model.user.UserUpdateEmailOrLoginModel;
+import fr.koi.testapi.web.model.user.UserUpdateEmailLoginModel;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -72,16 +72,17 @@ public class UserController {
     /**
      * Perform an update of email and/or login of the specified user
      *
-     * @param model The update model
+     * @param authorization The authorization header
+     * @param model         The update model
      *
      * @return The updated user
      */
     @PutMapping("/update/email-or-login")
     public ResponseEntity<UserModel> updateEmailOrLogin(
         @RequestHeader("Authorization") String authorization,
-        @RequestBody UserUpdateEmailOrLoginModel model
+        @RequestBody UserUpdateEmailLoginModel model
     ) {
-        return null;
+        return ResponseEntity.ok(this.userService.updateEmailOrLogin(authorization, model));
     }
 
     /**

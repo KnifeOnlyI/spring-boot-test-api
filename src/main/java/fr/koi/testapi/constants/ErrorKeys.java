@@ -109,6 +109,26 @@ public final class ErrorKeys {
          */
         public static final String REGISTER_LOGIN_ALREADY_EXISTS = "error.register.login.alreadyExists";
 
+        /**
+         * Error when trying to update without specify ID
+         */
+        public static final String UPDATE_ID_NULL = "error.update.id.null";
+
+        /**
+         * Error when trying to update without specify email or login
+         */
+        public static final String UPDATE_EMAIL_AND_LOGIN_NULL = "error.update.email_and_login.null";
+
+        /**
+         * Error when trying to update with invalid formatted email
+         */
+        public static final String UPDATE_EMAIL_INVALID = "error.update.email.invalid";
+
+        /**
+         * Error when trying to update with invalid formatted login
+         */
+        public static final String UPDATE_LOGIN_INVALID = "error.update.login.invalid";
+
         private User() {
         }
     }

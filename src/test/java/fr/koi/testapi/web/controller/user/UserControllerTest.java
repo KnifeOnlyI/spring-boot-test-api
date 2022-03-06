@@ -11,6 +11,7 @@ import fr.koi.testapi.services.JwtService;
 import fr.koi.testapi.utils.HttpResponseAssert;
 import fr.koi.testapi.web.model.user.JwtTokenModel;
 import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.web.model.user.UserModel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,7 +23,9 @@ import org.springframework.test.annotation.DirtiesContext;
 
 import javax.transaction.Transactional;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -30,7 +33,7 @@ import java.util.stream.Stream;
  */
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-class UserResourceTest {
+class UserControllerTest {
     /**
      * The default user agent
      */
@@ -156,6 +159,63 @@ class UserResourceTest {
             " Bearer test",
             " TEST   654 654654 654"
         );
+    }
+
+    /**
+     * Create a new token in the database and returns the corresponding authorization header and token value
+     *
+     * @return The authorization header and token value
+     */
+    private Map<String, String> login() {
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
+            .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
+            .setPassword(UserConstants.Users.ACTIVATED.getPassword())
+            .setRememberMe(false);
+
+        String token = new HttpResponseAssert<>(this.userResource.login(
+            DEFAULT_USER_AGENT,
+            DEFAULT_CLIENT_IP,
+            userAuthenticator
+        )).assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .getNotNullBody().getToken();
+
+        Map<String, String> authorization = new HashMap<>();
+
+        authorization.put("token", token);
+        authorization.put("header", String.format("Bearer %s", token));
+
+        return authorization;
+    }
+
+    /**
+     * Create a new token in the database and returns the corresponding authorization header and token value
+     *
+     * @param email    The email to user
+     * @param password The password to use
+     *
+     * @return The authorization header and token value
+     */
+    private Map<String, String> login(String email, String password) {
+        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
+            .setLoginOrEmail(email)
+            .setPassword(password)
+            .setRememberMe(false);
+
+        String token = new HttpResponseAssert<>(this.userResource.login(
+            DEFAULT_USER_AGENT,
+            DEFAULT_CLIENT_IP,
+            userAuthenticator
+        )).assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .getNotNullBody().getToken();
+
+        Map<String, String> authorization = new HashMap<>();
+
+        authorization.put("token", token);
+        authorization.put("header", String.format("Bearer %s", token));
+
+        return authorization;
     }
 
     /**
@@ -548,10 +608,11 @@ class UserResourceTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.NEW_VALID_USER.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.NEW_VALID_USER.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.NEW_VALID_USER.getPassword(), user.getPassword());
+        Assertions.assertNotEquals(UserConstants.Users.NEW_VALID_USER.getPassword(), user.getPassword());
         Assertions.assertNotNull(user.getCreatedAt());
         Assertions.assertFalse(user.getActivated());
         Assertions.assertNull(user.getTokens());
+        Assertions.assertNull(user.getGroups());
     }
 
     /**
@@ -784,22 +845,11 @@ class UserResourceTest {
      */
     @Test
     void testValidLogout() {
-        UserAuthenticatorModel userAuthenticator = new UserAuthenticatorModel()
-            .setLoginOrEmail(UserConstants.Users.ACTIVATED.getEmail())
-            .setPassword(UserConstants.Users.ACTIVATED.getPassword())
-            .setRememberMe(true);
-
-        String token = new HttpResponseAssert<>(this.userResource.login(
-            DEFAULT_USER_AGENT,
-            DEFAULT_CLIENT_IP,
-            userAuthenticator
-        )).assertHttpStatus(HttpStatus.OK)
-            .assertNbHeaders(0)
-            .getNotNullBody().getToken();
+        Map<String, String> token = this.login();
 
         // Check if response is valid
 
-        new HttpResponseAssert<>(this.userResource.logout(String.format("Bearer %s", token)))
+        new HttpResponseAssert<>(this.userResource.logout(token.get("header")))
             .assertHttpStatus(HttpStatus.OK)
             .assertNbHeaders(0)
             .assertNullBody();
@@ -813,7 +863,7 @@ class UserResourceTest {
         TokenEntity createdToken = tokens.get(0);
 
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getId(), createdToken.getId());
-        Assertions.assertEquals(token, createdToken.getValue());
+        Assertions.assertEquals(token.get("token"), createdToken.getValue());
         Assertions.assertNotNull(createdToken.getCreatedAt());
         Assertions.assertTrue(createdToken.getDeleted());
     }
@@ -877,5 +927,291 @@ class UserResourceTest {
         List<TokenEntity> tokens = this.tokenRepository.findAll();
 
         Assertions.assertEquals(0, tokens.size());
+    }
+
+    @Test
+    @Transactional
+    void testValidUpdateEmailAndLogin() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is valid
+
+        UserModel response = new HttpResponseAssert<>(this.userResource.updateEmailOrLogin(
+            this.login().get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER)
+        ))
+            .assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .getNotNullBody();
+
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getId(), response.getId());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), response.getEmail());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), response.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        // Check if no users was created in the database
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(1, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
+    }
+
+    @Test
+    @Transactional
+    void testValidUpdateEmail() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is valid
+
+        UserModel response = new HttpResponseAssert<>(this.userResource.updateEmailOrLogin(
+            this.login().get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER)
+                .setLogin(null)
+        ))
+            .assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .getNotNullBody();
+
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getId(), response.getId());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), response.getEmail());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), response.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        // Check if no users was created in the database
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(1, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
+    }
+
+    @Test
+    @Transactional
+    void testValidUpdateLogin() {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is valid
+
+        UserModel response = new HttpResponseAssert<>(this.userResource.updateEmailOrLogin(
+            this.login().get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER)
+                .setEmail(null)
+        ))
+            .assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .getNotNullBody();
+
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getId(), response.getId());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), response.getEmail());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), response.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        // Check if no users was created in the database
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(1, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
+    }
+
+    /**
+     * Test an invalid update because invalid email
+     */
+    @ParameterizedTest(name = "#{index} - Run test with email = {0}")
+    @MethodSource("invalidLoginProvider")
+    @Transactional
+    void testInvalidUpdateBecauseInvalidEmailAndLogin(String login) {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.updateEmailOrLogin(
+            this.login().get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER).setLogin(login)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.UPDATE_LOGIN_INVALID);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        // Check the user was not updated
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(1, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
+    }
+
+    /**
+     * Test an invalid update because invalid email
+     */
+    @ParameterizedTest(name = "#{index} - Run test with email = {0}")
+    @MethodSource("invalidEmailProvider")
+    @Transactional
+    void testInvalidUpdateBecauseInvalidEmail(String email) {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.updateEmailOrLogin(
+            this.login().get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER).setEmail(email)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.UPDATE_EMAIL_INVALID);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        // Check the user was not updated
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(1, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
+    }
+
+    /**
+     * Test an invalid update because invalid email
+     */
+    @ParameterizedTest(name = "#{index} - Run test with email = {0}")
+    @MethodSource("invalidLoginProvider")
+    @Transactional
+    void testInvalidUpdateBecauseInvalidLogin(String login) {
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.updateEmailOrLogin(
+            this.login().get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER).setLogin(login)
+        ), HttpStatus.BAD_REQUEST, ErrorKeys.User.UPDATE_LOGIN_INVALID);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        // Check the user was not updated
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(1, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
+    }
+
+    /**
+     * Test an invalid update because not connected with updated user
+     */
+    @Test
+    @Transactional
+    void testInvalidUpdateBecauseNotConnectedWithUpdatedUser() {
+        new HttpResponseAssert<>(
+            this.userResource.register(UserConstants.Users.getCopy(UserConstants.Users.NEW_VALID_USER))
+        )
+            .assertHttpStatus(HttpStatus.OK)
+            .assertNbHeaders(0)
+            .assertNullBody();
+
+        this.userRepository.findByLoginOrEmail(
+            UserConstants.Users.NEW_VALID_USER.getLogin(),
+            UserConstants.Users.NEW_VALID_USER.getEmail()
+        ).orElseThrow(RuntimeException::new).setActivated(true);
+
+        int nbInDbBeforeTest = this.userRepository.findAll().size();
+
+        // Check if response is invalid
+
+        HttpResponseAssert.AssertRestException(() -> this.userResource.updateEmailOrLogin(
+            this.login(UserConstants.Users.NEW_VALID_USER.getEmail(), UserConstants.Users.NEW_VALID_USER.getPassword())
+                .get("header"),
+            UserConstants.Users.getCopy(UserConstants.Users.UPDATED_ACTIVATED_USER)
+        ), HttpStatus.UNAUTHORIZED, ErrorKeys.Authorization.NOT_AUTHORIZED);
+
+        // Check the user was not created in the database
+
+        int nbInDbAfterTest = this.userRepository.findAll().size();
+
+        Assertions.assertEquals(nbInDbBeforeTest, nbInDbAfterTest);
+
+        // Check the user was not updated
+
+        UserEntity user = this.userRepository.findById(UserConstants.Users.UPDATED_ACTIVATED_USER.getId()).orElse(null);
+
+        Assertions.assertNotNull(user);
+        Assertions.assertNotNull(user.getId());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
+        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        Assertions.assertTrue(user.getActivated());
+        Assertions.assertNotNull(user.getTokens());
+        Assertions.assertEquals(0, user.getTokens().size());
+        Assertions.assertNotNull(user.getGroups());
+        Assertions.assertEquals(1, user.getGroups().size());
     }
 }

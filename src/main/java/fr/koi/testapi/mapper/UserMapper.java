@@ -1,6 +1,7 @@
 package fr.koi.testapi.mapper;
 
 import fr.koi.testapi.domain.UserEntity;
+import fr.koi.testapi.web.model.user.UserModel;
 import fr.koi.testapi.web.model.user.UserRegisterModel;
 import org.mapstruct.Mapper;
 
@@ -17,4 +18,13 @@ public interface UserMapper {
      * @return The corresponding entity
      */
     UserEntity toEntity(UserRegisterModel model);
+
+    /**
+     * Convert an entity to model
+     *
+     * @param entity The entity to convert
+     *
+     * @return The corresponding model
+     */
+    UserModel toModel(UserEntity entity);
 }

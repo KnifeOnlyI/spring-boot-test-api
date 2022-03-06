@@ -12,11 +12,14 @@ import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
 import fr.koi.testapi.web.model.user.JwtTokenModel;
 import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
+import fr.koi.testapi.web.model.user.UserModel;
 import fr.koi.testapi.web.model.user.UserRegisterModel;
+import fr.koi.testapi.web.model.user.UserUpdateEmailLoginModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -140,15 +143,17 @@ public class UserService {
     private void deletePreviousIdenticalTokens(UserEntity user, String userAgent, String clientIp, Date currentDate) {
         // Delete expired tokens
         // Delete previous tokens with same user agent and client IP
-        user.getTokens().forEach((TokenEntity tokenEntity) -> {
-            JwtTokenDTO tokenDTO = jwtService.verify(tokenEntity.getValue());
+        if (user.getTokens() != null) {
+            user.getTokens().forEach((TokenEntity tokenEntity) -> {
+                JwtTokenDTO tokenDTO = jwtService.verify(tokenEntity.getValue());
 
-            if ((tokenDTO.getExpirationDate() != null && tokenDTO.getExpirationDate().before(currentDate)) ||
-                (tokenDTO.getUserAgent().equals(userAgent) && tokenDTO.getClientIp().equalsIgnoreCase(clientIp))
-            ) {
-                tokenEntity.setDeleted(true);
-            }
-        });
+                if ((tokenDTO.getExpirationDate() != null && tokenDTO.getExpirationDate().before(currentDate)) ||
+                    (tokenDTO.getUserAgent().equals(userAgent) && tokenDTO.getClientIp().equalsIgnoreCase(clientIp))
+                ) {
+                    tokenEntity.setDeleted(true);
+                }
+            });
+        }
     }
 
     /**
@@ -186,6 +191,10 @@ public class UserService {
             clientIp,
             expirationDate
         ));
+
+        if (user.getTokens() == null) {
+            user.setTokens(new ArrayList<>());
+        }
 
         user.getTokens().add(this.tokenRepository.save(new TokenEntity().setValue(token.getToken())));
         this.userRepository.save(user);
@@ -227,9 +236,17 @@ public class UserService {
     @Transactional
     @SuppressWarnings("java:S2143")
     public void register(UserRegisterModel userRegister) {
-        this.checkEmail(userRegister.getEmail());
-        this.checkLogin(userRegister.getLogin());
-        this.checkPassword(userRegister.getPassword());
+        this.checkEmail(
+            userRegister.getEmail(), ErrorKeys.User.REGISTER_EMAIL_NULL, ErrorKeys.User.REGISTER_EMAIL_INVALID
+        );
+
+        this.checkLogin(
+            userRegister.getLogin(), ErrorKeys.User.REGISTER_LOGIN_NULL, ErrorKeys.User.REGISTER_LOGIN_INVALID
+        );
+
+        this.checkPassword(
+            userRegister.getPassword(), ErrorKeys.User.REGISTER_PASSWORD_NULL, ErrorKeys.User.REGISTER_PASSWORD_INVALID
+        );
 
         UserEntity user = this.userRepository.findByLoginOrEmail(
             userRegister.getLogin(),
@@ -244,8 +261,71 @@ public class UserService {
 
         userRegister.setEmail(userRegister.getEmail().toLowerCase(Locale.ROOT));
         userRegister.setLogin(userRegister.getLogin().toLowerCase(Locale.ROOT));
+        userRegister.setPassword(this.passwordService.encode(userRegister.getPassword()));
 
         this.userRepository.save(this.userMapper.toEntity(userRegister).setCreatedAt(new Date()).setActivated(false));
+    }
+
+    /**
+     * Perform an update of email and/or login of the specified user
+     *
+     * @param authorization The authorization header
+     * @param model         The update model
+     *
+     * @return The updated user
+     */
+    @Transactional
+    public UserModel updateEmailOrLogin(String authorization, UserUpdateEmailLoginModel model) {
+        UserEntity userAuthorization = this.getUserOfAuthorization(authorization);
+        UserEntity userToUpdate = this.userRepository.findById(model.getId())
+            .orElseThrow(() -> new RestException(HttpStatus.NOT_FOUND, ErrorKeys.User.NOT_EXISTS));
+
+        checkUpdateData(model, userAuthorization, userToUpdate);
+
+        if (model.getEmail() != null) {
+            userToUpdate.setEmail(model.getEmail());
+        }
+
+        if (model.getLogin() != null) {
+            userToUpdate.setLogin(model.getLogin());
+        }
+
+        if (model.getLogin() == null && model.getEmail() == null) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.UPDATE_EMAIL_AND_LOGIN_NULL);
+        }
+
+        return this.userMapper.toModel(userToUpdate);
+    }
+
+    /**
+     * Check the validity of the specified update data
+     *
+     * @param model             The update data to check
+     * @param userAuthorization The user entity from authorization header
+     * @param userToUpdate      The user entity to update
+     */
+    private void checkUpdateData(
+        UserUpdateEmailLoginModel model, UserEntity userAuthorization, UserEntity userToUpdate
+    ) {
+        if (!userAuthorization.getId().equals(userToUpdate.getId())) {
+            throw new RestException(HttpStatus.UNAUTHORIZED, ErrorKeys.Authorization.NOT_AUTHORIZED);
+        }
+
+        if (model.getId() == null) {
+            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.UPDATE_ID_NULL);
+        }
+
+        if (model.getEmail() != null && !"".equalsIgnoreCase(model.getEmail())) {
+            this.checkEmail(model.getEmail(), ErrorKeys.User.UPDATE_EMAIL_INVALID, ErrorKeys.User.UPDATE_EMAIL_INVALID);
+        } else {
+            model.setEmail(null);
+        }
+
+        if (model.getLogin() != null && !"".equalsIgnoreCase(model.getLogin())) {
+            this.checkLogin(model.getLogin(), ErrorKeys.User.UPDATE_LOGIN_INVALID, ErrorKeys.User.UPDATE_LOGIN_INVALID);
+        } else {
+            model.setLogin(null);
+        }
     }
 
     /**
@@ -315,7 +395,7 @@ public class UserService {
         TokenEntity tokenEntity = this.getTokenOfAuthorization(authorization);
         JwtTokenDTO jwtTokenDTO = this.jwtService.verify(tokenEntity.getValue());
 
-        if (jwtTokenDTO.getExpirationDate().before(new Date())) {
+        if (jwtTokenDTO.getExpirationDate() != null && jwtTokenDTO.getExpirationDate().before(new Date())) {
             throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.Authorization.TOKEN_NOT_EXISTS);
         }
 
@@ -350,39 +430,45 @@ public class UserService {
     /**
      * Check if the specified email is valid
      *
-     * @param email The email to check
+     * @param email           The email to check
+     * @param errorForNull    The error when null
+     * @param errorForInvalid The error when invalid
      */
-    private void checkEmail(String email) {
+    private void checkEmail(String email, String errorForNull, String errorForInvalid) {
         if (email == null || "".equals(email.strip())) {
-            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_NULL);
+            throw new RestException(HttpStatus.BAD_REQUEST, errorForNull);
         } else if (!this.validEmailRegex.matcher(email).find()) {
-            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_EMAIL_INVALID);
+            throw new RestException(HttpStatus.BAD_REQUEST, errorForInvalid);
         }
     }
 
     /**
      * Check if the specified login is valid
      *
-     * @param login The login to check
+     * @param login           The login to check
+     * @param errorForNull    The error when null
+     * @param errorForInvalid The error when invalid
      */
-    private void checkLogin(String login) {
+    private void checkLogin(String login, String errorForNull, String errorForInvalid) {
         if (login == null || "".equals(login.strip())) {
-            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_NULL);
+            throw new RestException(HttpStatus.BAD_REQUEST, errorForNull);
         } else if (!this.validLoginRegex.matcher(login).find()) {
-            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_LOGIN_INVALID);
+            throw new RestException(HttpStatus.BAD_REQUEST, errorForInvalid);
         }
     }
 
     /**
      * Check if the specified password is valid
      *
-     * @param password The password to check
+     * @param password        The password to check
+     * @param errorForNull    The error when null
+     * @param errorForInvalid The error when invalid
      */
-    private void checkPassword(String password) {
+    private void checkPassword(String password, String errorForNull, String errorForInvalid) {
         if (password == null || "".equals(password.strip())) {
-            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_NULL);
+            throw new RestException(HttpStatus.BAD_REQUEST, errorForNull);
         } else if (!this.validPasswordRegex.matcher(password).find()) {
-            throw new RestException(HttpStatus.BAD_REQUEST, ErrorKeys.User.REGISTER_PASSWORD_INVALID);
+            throw new RestException(HttpStatus.BAD_REQUEST, errorForInvalid);
         }
     }
 }
