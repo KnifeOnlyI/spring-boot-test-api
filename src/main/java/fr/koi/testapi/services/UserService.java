@@ -263,7 +263,7 @@ public class UserService {
         userRegister.setLogin(userRegister.getLogin().toLowerCase(Locale.ROOT));
         userRegister.setPassword(this.passwordService.encode(userRegister.getPassword()));
 
-        this.userRepository.save(this.userMapper.toEntity(userRegister).setCreatedAt(new Date()).setActivated(false));
+        this.userRepository.save(this.userMapper.toEntity(userRegister));
     }
 
     /**

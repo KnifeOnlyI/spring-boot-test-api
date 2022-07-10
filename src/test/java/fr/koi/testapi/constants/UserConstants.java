@@ -1,9 +1,10 @@
 package fr.koi.testapi.constants;
 
 import fr.koi.testapi.domain.UserEntity;
-import fr.koi.testapi.utils.DateUtil;
 import fr.koi.testapi.web.model.user.UserRegisterModel;
 import fr.koi.testapi.web.model.user.UserUpdateEmailLoginModel;
+
+import java.time.LocalDateTime;
 
 /**
  * Contains all constants about users testing
@@ -21,7 +22,7 @@ public final class UserConstants {
             .setEmail("activated@user.com")
             .setLogin("activated")
             .setPassword("P@ssword")
-            .setCreatedAt(DateUtil.fromDatabaseString("2021-12-31 23:59:59"))
+            .setCreatedAt(LocalDateTime.parse("2021-12-31T23:59:59"))
             .setActivated(true);
 
         /**
@@ -32,7 +33,7 @@ public final class UserConstants {
             .setEmail("desactivated@user.com")
             .setLogin("desactivated")
             .setPassword("P@ssword")
-            .setCreatedAt(DateUtil.fromDatabaseString("2022-01-01 00:00:00"))
+            .setCreatedAt(LocalDateTime.parse("2022-01-01T00:00:00"))
             .setActivated(false);
 
         /**

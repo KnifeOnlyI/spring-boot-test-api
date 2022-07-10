@@ -48,8 +48,8 @@ public class UserController {
     @PostMapping("/login")
     @SuppressWarnings("java:S2143")
     public ResponseEntity<JwtTokenModel> login(
-        @RequestHeader("User-Agent") String userAgent,
-        @RequestHeader("X-Forwarded-For") String clientIp,
+        @RequestHeader(value = "User-Agent", required = false) String userAgent,
+        @RequestHeader(value = "X-Forwarded-For", required = false) String clientIp,
         @RequestBody UserAuthenticatorModel authenticator
     ) {
         return ResponseEntity.ok(this.userService.login(authenticator, userAgent, clientIp));
@@ -79,7 +79,7 @@ public class UserController {
      */
     @PutMapping("/update/email-or-login")
     public ResponseEntity<UserModel> updateEmailOrLogin(
-        @RequestHeader("Authorization") String authorization,
+        @RequestHeader(value = "Authorization", required = false) String authorization,
         @RequestBody UserUpdateEmailLoginModel model
     ) {
         return ResponseEntity.ok(this.userService.updateEmailOrLogin(authorization, model));
@@ -93,7 +93,7 @@ public class UserController {
      * @return Empty HTTP response
      */
     @GetMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {
         this.userService.logout(authorization);
 
         return ResponseEntity.ok(null);

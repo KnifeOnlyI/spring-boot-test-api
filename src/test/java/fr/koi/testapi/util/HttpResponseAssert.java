@@ -1,4 +1,4 @@
-package fr.koi.testapi.utils;
+package fr.koi.testapi.util;
 
 import fr.koi.testapi.exception.RestException;
 import org.junit.jupiter.api.Assertions;

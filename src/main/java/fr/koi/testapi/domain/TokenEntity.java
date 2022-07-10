@@ -11,6 +11,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -41,8 +42,7 @@ public class TokenEntity {
      * The creation date
      */
     @Column(name = "created_at")
-    @SuppressWarnings("java:S2143")
-    private Date createdAt = new Date();
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     /**
      * The deleted flag

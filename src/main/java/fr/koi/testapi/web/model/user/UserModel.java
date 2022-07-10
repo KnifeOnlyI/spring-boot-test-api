@@ -31,5 +31,5 @@ public class UserModel {
     /**
      * The creation date
      */
-    private Date createdAt;
+    private String createdAt;
 }

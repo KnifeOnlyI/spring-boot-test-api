@@ -15,6 +15,7 @@ import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -54,12 +55,12 @@ public class UserEntity {
     /**
      * The creation date
      */
-    private Date createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     /**
      * The activated flag
      */
-    private Boolean activated;
+    private Boolean activated = false;
 
     /**
      * The tokens

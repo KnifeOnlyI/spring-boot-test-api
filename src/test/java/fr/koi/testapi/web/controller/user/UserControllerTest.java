@@ -8,7 +8,8 @@ import fr.koi.testapi.dto.JwtTokenDTO;
 import fr.koi.testapi.repository.TokenRepository;
 import fr.koi.testapi.repository.UserRepository;
 import fr.koi.testapi.services.JwtService;
-import fr.koi.testapi.utils.HttpResponseAssert;
+import fr.koi.testapi.util.DateUtil;
+import fr.koi.testapi.util.HttpResponseAssert;
 import fr.koi.testapi.web.model.user.JwtTokenModel;
 import fr.koi.testapi.web.model.user.UserAuthenticatorModel;
 import fr.koi.testapi.web.model.user.UserModel;
@@ -947,7 +948,7 @@ class UserControllerTest {
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getId(), response.getId());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), response.getEmail());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), response.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
 
         int nbInDbAfterTest = this.userRepository.findAll().size();
 
@@ -961,7 +962,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(1, user.getTokens().size());
@@ -988,7 +989,7 @@ class UserControllerTest {
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getId(), response.getId());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), response.getEmail());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), response.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
 
         int nbInDbAfterTest = this.userRepository.findAll().size();
 
@@ -1002,7 +1003,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(1, user.getTokens().size());
@@ -1029,7 +1030,7 @@ class UserControllerTest {
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getId(), response.getId());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), response.getEmail());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), response.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), response.getCreatedAt());
 
         int nbInDbAfterTest = this.userRepository.findAll().size();
 
@@ -1043,7 +1044,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.UPDATED_ACTIVATED_USER.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(1, user.getTokens().size());
@@ -1081,7 +1082,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(1, user.getTokens().size());
@@ -1119,7 +1120,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(1, user.getTokens().size());
@@ -1157,7 +1158,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(1, user.getTokens().size());
@@ -1207,7 +1208,7 @@ class UserControllerTest {
         Assertions.assertNotNull(user.getId());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getEmail(), user.getEmail());
         Assertions.assertEquals(UserConstants.Users.ACTIVATED.getLogin(), user.getLogin());
-        Assertions.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
+        DateUtil.assertEquals(UserConstants.Users.ACTIVATED.getCreatedAt(), user.getCreatedAt());
         Assertions.assertTrue(user.getActivated());
         Assertions.assertNotNull(user.getTokens());
         Assertions.assertEquals(0, user.getTokens().size());
